@@ -10,7 +10,7 @@ import random
 from PIL import Image
 
 
-def make_collage(images, filename, width, init_height):
+def create_collage(images, width, init_height):
     """
     Make a collage image with a width equal to `width` from `images` and save to `filename`.
     """
@@ -63,7 +63,7 @@ def make_collage(images, filename, width, init_height):
         return False
 
     collage_image = Image.new('RGB', (width, int(out_height)), (35, 35, 35))
-    # put images to the collage
+    # put images to the collage 
     y = 0
     for coef, imgs_line in coefs_lines:
         if imgs_line:
@@ -80,42 +80,6 @@ def make_collage(images, filename, width, init_height):
                     collage_image.paste(img, (int(x), int(y)))
                 x += img.size[0] + margin_size
             y += int(init_height / coef) + margin_size
-    collage_image.save(filename)
+    
     return collage_image
 
-
-def main():
-    # prepare argument parser
-    parse = argparse.ArgumentParser(description='Photo collage maker')
-    parse.add_argument('-f', '--folder', dest='folder', help='folder with images (*.jpg, *.jpeg, *.png)', default='.')
-    parse.add_argument('-o', '--output', dest='output', help='output collage image filename', default='collage.png')
-    parse.add_argument('-w', '--width', dest='width', type=int, help='resulting collage image width')
-    parse.add_argument('-i', '--init_height', dest='init_height', type=int, help='initial height for resize the images')
-    parse.add_argument('-s', '--shuffle', action='store_true', dest='shuffle', help='enable images shuffle')
-
-    args = parse.parse_args()
-    if not args.width or not args.init_height:
-        parse.print_help()
-        exit(1)
-
-    # get images
-    files = [os.path.join(args.folder, fn) for fn in os.listdir(args.folder)]
-    images = [fn for fn in files if os.path.splitext(fn)[1].lower() in ('.jpg', '.jpeg', '.png')]
-    if not images:
-        print('No images for making collage! Please select other directory with images!')
-        exit(1)
-
-    # shuffle images if needed
-    if args.shuffle:
-        random.shuffle(images)
-
-    print('Making collage...')
-    res = make_collage(images, args.output, args.width, args.init_height)
-    if not res:
-        print('Failed to create collage!')
-        exit(1)
-    print('Collage is ready!')
-
-
-if __name__ == '__main__':
-    main()
