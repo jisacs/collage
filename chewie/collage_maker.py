@@ -61,7 +61,7 @@ def create_collage(images, width, init_height):
         print('Height of collage could not be 0!')
         return False
 
-    collage_image = Image.new('RGB', (width, int(out_height)), (35, 35, 35))
+    collage_image = Image.new('RGBA', (width, int(out_height)), (35, 35, 35))
     # put images to the collage 
     y = 0
     for coef, imgs_line in coefs_lines:
