@@ -35,14 +35,11 @@ class ThumbnailDragger:
         :return: Boolean indicating if list was reordered
         """
        
-        
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             
             # Check if click is in thumbnail list area
-            print(f"Mouse pos: {event.pos} self.list_x: {self.list_x} self.list_x + LIST_WIDTH: {self.list_x + LIST_WIDTH}")
-            if event.pos[0] > self.list_x and event.pos[0] < self.list_x + LIST_WIDTH:
+             if event.pos[0] > self.list_x and event.pos[0] < self.list_x + LIST_WIDTH:
                 # Find which thumbnail was clicked
-                print(f"Find which thumbnail was clicked")
                 for i, img_data in enumerate(self.thumbnails):
                     thumb_y = start_y + i * (img_data['surface'].get_height() + 30)
                     thumb_rect = pygame.Rect(
@@ -123,8 +120,8 @@ class CollageViewer:
         self.scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
-        self.BACKGROUND_COLOR = (240, 240, 240)
-        self.GRID_COLOR = (200, 200, 200)
+        self.BACKGROUND_COLOR = (0, 0, 0)  # Black background
+        self.GRID_COLOR = (50, 50, 50)  # Dark gray grid to complement black background
         self.font = pygame.font.Font(None, 24)
     
     def _setup_inputs(self):
@@ -234,7 +231,7 @@ class CollageViewer:
         ]
         
         for text, pos in texts:
-            text_surface = self.font.render(text, True, (0, 0, 0))
+            text_surface = self.font.render(text, True, (255, 255, 255))
             self.screen.blit(text_surface, pos)
         
         self.height_input.draw(self.screen)
