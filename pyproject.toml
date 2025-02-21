@@ -5,11 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chewie"
 version = "0.1.0"
-description = "A powerful CLI application"
+description = "A powerful CLI application for creating image collages"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "click>=8.1.0"
+    "click>=8.1.0",
+    "Pillow>=9.5.0"
 ]
 
 [project.scripts]
