@@ -21,6 +21,7 @@ class CollageViewer:
         self.width = width
         self.height = height
         self._setup_inputs()
+        self._load_image_thumbnails()
     
     def _setup_initial_collage(self, width, height):
         """Create the initial collage image."""
@@ -72,6 +73,42 @@ class CollageViewer:
             default_text=str(int(self.width))
         )
     
+    def _load_image_thumbnails(self):
+        """Load and scale thumbnails for the image list."""
+        from PIL import Image
+        
+        self.image_thumbnails = []
+        
+        # Calculate maximum thumbnail dimensions
+        list_width = 200
+        available_height = self.screen_height - 100  # Reserve space for title and margins
+        num_images = len(self.images)
+
+        print(f'available_height: {available_height}, num_images: {num_images}')
+        # Calculate thumbnail height to fit all images
+        max_thumbnail_height =  max(1, available_height // (num_images*6))
+        print(f'max_thumbnail_height: {max_thumbnail_height}')
+        max_thumbnail_width = list_width - 50  # Leave some margin
+        
+        for img_path in self.images:
+            try:
+                # Open image with Pillow
+                pil_img = Image.open(img_path)
+                
+                # Resize to fit within max dimensions while maintaining aspect ratio
+                pil_img.thumbnail((max_thumbnail_width, max_thumbnail_height), Image.LANCZOS)
+                
+                # Convert to Pygame surface
+                pygame_surface = pilImageToSurface(pil_img)
+                
+                self.image_thumbnails.append({
+                    'surface': pygame_surface,
+                    'path': os.path.basename(img_path),
+                    'original_size': pil_img.size
+                })
+            except Exception as e:
+                print(f"Error loading thumbnail for {img_path}: {e}")
+    
     def zoom(self, factor):
         """Adjust image zoom with limits."""
         self.scale *= factor
@@ -83,6 +120,7 @@ class CollageViewer:
         scaled_image = self._get_scaled_image()
         self._draw_image(scaled_image)
         self._render_text_and_inputs()
+        self._render_image_list()
         pygame.display.flip()
     
     def _clear_screen(self):
@@ -112,7 +150,7 @@ class CollageViewer:
             
             (f"Height:", (10, 10)),
             (f"Width:", (140, 10)),
-            (f"Scale: {self.scale:.2f}x", (10, self.screen_height - 60)),
+            (f"Nb images: {len(self.images)}", (10, self.screen_height - 60)),
             ("Scroll to zoom, Arrow keys to move, Esc to quit", 
              (10, self.screen_height - 30))
         ]
@@ -123,6 +161,45 @@ class CollageViewer:
         
         self.height_input.draw(self.screen)
         self.width_input.draw(self.screen)
+    
+    def _render_image_list(self):
+        """Render the list of images on the right side of the window."""
+        # Define list area
+        list_width = 200
+        list_x = self.screen_width - list_width
+        
+        # Draw background for image list
+        list_rect = pygame.Rect(list_x, 0, list_width, self.screen_height)
+        pygame.draw.rect(self.screen, (230, 230, 230), list_rect)
+        pygame.draw.line(self.screen, (150, 150, 150), 
+                         (list_x, 0), (list_x, self.screen_height), 2)
+        
+        # Render title
+        title_font = pygame.font.Font(None, 24)
+        title_text = title_font.render("Images", True, (0, 0, 0))
+        self.screen.blit(title_text, (list_x + 10, 10))
+        
+        # Render thumbnails and filenames
+        start_y = 50
+        for i, img_data in enumerate(self.image_thumbnails):
+            # Position for this thumbnail
+            thumb_y = start_y + i * (img_data['surface'].get_height() + 30)
+            
+            if thumb_y + img_data['surface'].get_height() > self.screen_height:
+                break
+            
+            # Draw thumbnail
+            self.screen.blit(img_data['surface'], (list_x + 25, thumb_y))
+            
+            # Draw filename and original size
+            nb_images = len(self.images)
+          
+            filename_font = pygame.font.Font(None, max(8, 16 - nb_images))
+            filename_text = filename_font.render(
+                f"{img_data['path']} ({img_data['original_size'][0]}x{img_data['original_size'][1]})", 
+                True, (0, 0, 0)
+            )
+            self.screen.blit(filename_text, (list_x + 25, thumb_y + img_data['surface'].get_height() + 5))
     
     def run(self):
         """Main event loop for the viewer."""
