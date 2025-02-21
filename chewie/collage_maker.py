@@ -81,7 +81,7 @@ def make_collage(images, filename, width, init_height):
                 x += img.size[0] + margin_size
             y += int(init_height / coef) + margin_size
     collage_image.save(filename)
-    return True
+    return collage_image
 
 
 def main():
