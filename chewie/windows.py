@@ -10,6 +10,81 @@ def pilImageToSurface(pilImage):
     data = pilImage.tobytes()
     return pygame.image.fromstring(data, size, mode)
 
+LIST_WIDTH = 250
+
+class ThumbnailDragger:
+    def __init__(self, thumbnails, list_x):
+        """
+        Manage dragging and dropping of thumbnails
+        
+        :param thumbnails: List of thumbnail dictionaries
+        :param list_x: X coordinate of the thumbnail list
+        """
+        self.thumbnails = thumbnails
+        self.list_x = list_x
+        self.dragging = None
+        self.drag_offset_y = 0
+        self.original_y = None
+    
+    def handle_event(self, event, start_y):
+        """
+        Handle mouse events for dragging thumbnails
+        
+        :param event: Pygame event
+        :param start_y: Starting Y coordinate of thumbnails
+        :return: Boolean indicating if list was reordered
+        """
+       
+        
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            
+            # Check if click is in thumbnail list area
+            print(f"Mouse pos: {event.pos} self.list_x: {self.list_x} self.list_x + LIST_WIDTH: {self.list_x + LIST_WIDTH}")
+            if event.pos[0] > self.list_x and event.pos[0] < self.list_x + LIST_WIDTH:
+                # Find which thumbnail was clicked
+                print(f"Find which thumbnail was clicked")
+                for i, img_data in enumerate(self.thumbnails):
+                    thumb_y = start_y + i * (img_data['surface'].get_height() + 30)
+                    thumb_rect = pygame.Rect(
+                        self.list_x + 25, 
+                        thumb_y, 
+                        img_data['surface'].get_width(), 
+                        img_data['surface'].get_height()
+                    )
+                    
+                    if thumb_rect.collidepoint(event.pos):
+                        self.dragging = i
+                        self.drag_offset_y = event.pos[1] - thumb_y
+                        self.original_y = thumb_y
+                        break
+        
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self.dragging is not None:
+                # Calculate new position
+                mouse_y = event.pos[1]
+                new_index = max(0, min(len(self.thumbnails) - 1, 
+                    (mouse_y - start_y + self.drag_offset_y) // 
+                    (self.thumbnails[0]['surface'].get_height() + 30)
+                ))
+                
+                # Reorder thumbnails
+                if new_index != self.dragging:
+                    moved_item = self.thumbnails.pop(self.dragging)
+                    self.thumbnails.insert(new_index, moved_item)
+                    return True
+                
+                self.dragging = None
+        
+        return False
+    
+    def get_dragged_thumbnails(self):
+        """
+        Get thumbnails with the dragged item highlighted
+        
+        :return: List of thumbnail dictionaries
+        """
+        return self.thumbnails
+
 class CollageViewer:
     def __init__(self, images, output, width, height):
         """Initialize the Collage Viewer with advanced features."""
@@ -22,6 +97,7 @@ class CollageViewer:
         self.height = height
         self._setup_inputs()
         self._load_image_thumbnails()
+        self._setup_thumbnail_dragger()
     
     def _setup_initial_collage(self, width, height):
         """Create the initial collage image."""
@@ -35,7 +111,7 @@ class CollageViewer:
     
     def _setup_display(self):
         """Configure display settings."""
-        self.screen_width, self.screen_height = 1600, 1200
+        self.screen_width, self.screen_height = 1480, 1200
         self.screen = pygame.display.set_mode(
             (self.screen_width, self.screen_height), 
             pygame.RESIZABLE
@@ -73,6 +149,11 @@ class CollageViewer:
             default_text=str(int(self.width))
         )
     
+    def _setup_thumbnail_dragger(self):
+        """Initialize thumbnail drag and drop functionality."""
+        list_x = self.screen_width - LIST_WIDTH
+        self.thumbnail_dragger = ThumbnailDragger(self.image_thumbnails, list_x)
+    
     def _load_image_thumbnails(self):
         """Load and scale thumbnails for the image list."""
         from PIL import Image
@@ -80,15 +161,11 @@ class CollageViewer:
         self.image_thumbnails = []
         
         # Calculate maximum thumbnail dimensions
-        list_width = 200
         available_height = self.screen_height - 100  # Reserve space for title and margins
         num_images = len(self.images)
 
-        print(f'available_height: {available_height}, num_images: {num_images}')
-        # Calculate thumbnail height to fit all images
-        max_thumbnail_height =  max(1, available_height // (num_images*6))
-        print(f'max_thumbnail_height: {max_thumbnail_height}')
-        max_thumbnail_width = list_width - 50  # Leave some margin
+        max_thumbnail_height = max(1, available_height // (num_images*6))
+        max_thumbnail_width = LIST_WIDTH - 50  # Leave some margin
         
         for img_path in self.images:
             try:
@@ -104,7 +181,8 @@ class CollageViewer:
                 self.image_thumbnails.append({
                     'surface': pygame_surface,
                     'path': os.path.basename(img_path),
-                    'original_size': pil_img.size
+                    'original_size': pil_img.size,
+                    'original_path': img_path
                 })
             except Exception as e:
                 print(f"Error loading thumbnail for {img_path}: {e}")
@@ -165,11 +243,10 @@ class CollageViewer:
     def _render_image_list(self):
         """Render the list of images on the right side of the window."""
         # Define list area
-        list_width = 200
-        list_x = self.screen_width - list_width
+        list_x = self.screen_width - LIST_WIDTH
         
         # Draw background for image list
-        list_rect = pygame.Rect(list_x, 0, list_width, self.screen_height)
+        list_rect = pygame.Rect(list_x, 0, LIST_WIDTH, self.screen_height)
         pygame.draw.rect(self.screen, (230, 230, 230), list_rect)
         pygame.draw.line(self.screen, (150, 150, 150), 
                          (list_x, 0), (list_x, self.screen_height), 2)
@@ -181,7 +258,9 @@ class CollageViewer:
         
         # Render thumbnails and filenames
         start_y = 50
-        for i, img_data in enumerate(self.image_thumbnails):
+        thumbnails = self.thumbnail_dragger.get_dragged_thumbnails()
+        
+        for i, img_data in enumerate(thumbnails):
             # Position for this thumbnail
             thumb_y = start_y + i * (img_data['surface'].get_height() + 30)
             
@@ -193,7 +272,6 @@ class CollageViewer:
             
             # Draw filename and original size
             nb_images = len(self.images)
-          
             filename_font = pygame.font.Font(None, max(8, 16 - nb_images))
             filename_text = filename_font.render(
                 f"{img_data['path']} ({img_data['original_size'][0]}x{img_data['original_size'][1]})", 
@@ -224,6 +302,24 @@ class CollageViewer:
         if event.type == pygame.VIDEORESIZE:
             self._resize_window(event)
         
+        # Handle thumbnail drag and drop
+        start_y = 50
+        
+        if self.thumbnail_dragger.handle_event(event, start_y):
+            assert 1==0
+            # If thumbnails were reordered, update images list and regenerate collage
+            self.images = [
+                img_data['original_path'] for img_data in self.image_thumbnails
+            ]
+            
+            # Regenerate collage with new image order
+            try:
+                self.original_image = pilImageToSurface(
+                    create_collage(self.images, int(self.width), int(self.height))
+                )
+            except Exception as e:
+                print(f"Error recreating collage: {e}")
+        
         height_result = self.height_input.handle_event(event)
         width_result = self.width_input.handle_event(event)
         
@@ -239,6 +335,7 @@ class CollageViewer:
             (self.screen_width, self.screen_height), 
             pygame.RESIZABLE
         )
+        self._setup_thumbnail_dragger()
 
     
     def _process_input_results(self, height_result, width_result):
