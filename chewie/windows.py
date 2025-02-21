@@ -306,7 +306,6 @@ class CollageViewer:
         start_y = 50
         
         if self.thumbnail_dragger.handle_event(event, start_y):
-            assert 1==0
             # If thumbnails were reordered, update images list and regenerate collage
             self.images = [
                 img_data['original_path'] for img_data in self.image_thumbnails
