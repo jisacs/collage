@@ -4,7 +4,7 @@ from .windows import CollageViewer
 import pygame
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version="1.0.0")
 def main():
     """Chewie CLI: Your versatile command-line companion."""
     pass

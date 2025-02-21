@@ -299,6 +299,12 @@ class CollageViewer:
         if event.type == pygame.VIDEORESIZE:
             self._resize_window(event)
         
+        # Handle key press events
+        if event.type == pygame.KEYDOWN:
+            # Save collage when 'S' key is pressed
+            if event.key == pygame.K_s:
+                self._save_collage()
+        
         # Handle thumbnail drag and drop
         start_y = 50
         
@@ -333,6 +339,47 @@ class CollageViewer:
         )
         self._setup_thumbnail_dragger()
 
+    def _save_collage(self):
+        """
+        Save the current collage to the output path.
+        Provides user feedback about the save operation.
+        """
+        try:
+            # Convert Pygame surface back to PIL Image
+            from PIL import Image
+            import pygame.image
+            
+            # Ensure output directory exists
+            import os
+            #os.makedirs(os.path.dirname(self.output), exist_ok=True)
+            
+            # Save the original image
+            pygame.image.save(self.original_image, self.output)
+            
+            # Optional: Display save confirmation
+            print(f"Collage saved successfully to {self.output}")
+            
+            # Optional: Create a temporary surface for save confirmation
+            font = pygame.font.Font(None, 36)
+            save_text = font.render("Collage Saved!", True, (0, 255, 0))
+            text_rect = save_text.get_rect(center=(self.screen_width//2, self.screen_height//2))
+            
+            # Briefly show save confirmation
+            self.screen.blit(save_text, text_rect)
+            pygame.display.flip()
+            pygame.time.wait(1000)  # Show message for 1 second
+        
+        except Exception as e:
+            print(f"Error saving collage: {e}")
+            
+            # Optional: Display error message
+            font = pygame.font.Font(None, 36)
+            error_text = font.render(f"Save Failed: {str(e)}", True, (255, 0, 0))
+            text_rect = error_text.get_rect(center=(self.screen_width//2, self.screen_height//2))
+            
+            self.screen.blit(error_text, text_rect)
+            pygame.display.flip()
+            pygame.time.wait(2000)  # Show error for 2 seconds
     
     def _process_input_results(self, height_result, width_result):
         """Process height and width input results."""
