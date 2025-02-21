@@ -2,6 +2,7 @@ import pygame
 import sys
 import os
 from .collage_maker import create_collage
+from .button import Button
 
 def pilImageToSurface(pilImage):
     mode = pilImage.mode
@@ -9,51 +10,23 @@ def pilImageToSurface(pilImage):
     data = pilImage.tobytes()
     return pygame.image.fromstring(data, size, mode)
 
-class Button:
-    def __init__(self, x, y, width, height, text, color=(200, 200, 200), text_color=(0, 0, 0)):
-        """
-        Create a clickable button
-        
-        :param x: X coordinate of button top-left corner
-        :param y: Y coordinate of button top-left corner
-        :param width: Button width
-        :param height: Button height
-        :param text: Button text
-        :param color: Button background color
-        :param text_color: Button text color
-        """
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = text
-        self.color = color
-        self.text_color = text_color
-        self.font = pygame.font.Font(None, 24)
-    
-    def draw(self, surface):
-        """Draw the button on the given surface"""
-        pygame.draw.rect(surface, self.color, self.rect)
-        pygame.draw.rect(surface, (100, 100, 100), self.rect, 2)  # Border
-        text_surface = self.font.render(self.text, True, self.text_color)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)
-    
-    def is_clicked(self, pos):
-        """Check if the button is clicked"""
-        return self.rect.collidepoint(pos)
 
 class CollageViewer:
-    def __init__(self, collage_image):
+    def __init__(self, images, output, width, height):
         """
         Initialize the Collage Viewer with advanced features.
         
         :param image_path: Path to the collage image file
         """
-        # Initialize Pygame
-        pygame.init()
-        
+        try:
+            self.original_image = pilImageToSurface(create_collage(images, width, height))
+        except Exception as e:
+            print(f"Error creating collage: {e}")
+            return False
         # Load the image
-        self.original_image = pilImageToSurface(collage_image)
-        print("Pil3")
-        self.image = self.original_image.copy()
+        self.images = images
+        self.width = width
+        self.height = height
 
         # Screen and display setup
         self.screen_width, self.screen_height = 800, 600
@@ -121,8 +94,11 @@ class CollageViewer:
         
         # Display scale and help text
         scale_text = self.font.render(f"Scale: {self.scale:.2f}x", True, (0, 0, 0))
+        height_text = self.font.render(f"Height: {int(self.height)}", True, (0, 0, 0))
         help_text = self.font.render("Scroll to zoom, Arrow keys to move, Esc to quit", True, (0, 0, 0))
+        
         self.screen.blit(scale_text, (10, 10))
+        self.screen.blit(height_text, (10, 40))
         self.screen.blit(help_text, (10, self.screen_height - 60))
         
         # Draw buttons
@@ -158,9 +134,23 @@ class CollageViewer:
                     if event.button == 1:  # Left mouse button
                         mouse_pos = pygame.mouse.get_pos()
                         if self.plus_button.is_clicked(mouse_pos):
-                            self.zoom(1.2)  # Zoom in
+                            try:
+                                self.height=self.height+self.height/10
+                                self.original_image = pilImageToSurface(create_collage(self.images, int(self.width), int(self.height)))
+                            except Exception as e:
+                                print(f"Error creating collage: {e}")
+                                return False
+
                         elif self.minus_button.is_clicked(mouse_pos):
-                            self.zoom(0.8)  # Zoom out
+                            try:
+                                self.height=self.height-self.height/10
+                                self.original_image = pilImageToSurface(create_collage(self.images, int(self.width), int(self.height)))
+                            except Exception as e:
+                                print(f"Error creating collage: {e}")
+                                return False
+                        
+                     
+                            
                 
                 # Zoom with mouse wheel
                 elif event.type == pygame.MOUSEWHEEL:
@@ -191,52 +181,3 @@ class CollageViewer:
         
         pygame.quit()
         sys.exit()
-
-def display_collage(images, output, width, height):
-    """
-    Display the collage image using an advanced Pygame viewer.
-    
-    :param image_path: Path to the collage image file
-    """
-    try:
-        collage_image = create_collage(images, width, height)
-
-    except Exception as e:
-        print(f"Error creating collage: {e}")
-        return False
-
-    try:
-        viewer = CollageViewer(collage_image)
-        viewer.run()
-        return True
-    except FileNotFoundError:
-        print(f"Error: Image file not found at {output}")
-        return False
-    except pygame.error as e:
-        print(f"Pygame error: {e}")
-        return False
-
-def main(image_path=None):
-    """
-    Main function to display a collage image.
-    If no image path is provided, it tries to find the most recent collage.
-    
-    :param image_path: Optional path to the collage image
-    """
-    if not image_path:
-        # Try to find the most recent collage in the current directory
-        current_dir = os.getcwd()
-        collage_files = [f for f in os.listdir(current_dir) if f.startswith('collage') and f.endswith(('.jpg', '.png', '.jpeg'))]
-        
-        if not collage_files:
-            print("No collage image found.")
-            return False
-        
-        # Sort by modification time and get the most recent
-        collage_files.sort(key=lambda x: os.path.getmtime(os.path.join(current_dir, x)), reverse=True)
-        image_path = os.path.join(current_dir, collage_files[0])
-    
-    return display_collage(image_path)
-
-if __name__ == '__main__':
-    main()

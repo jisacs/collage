@@ -1,6 +1,7 @@
 import click
 import os
-from .windows import display_collage
+from .windows import CollageViewer
+import pygame
 
 @click.group()
 @click.version_option(version="0.1.0")
@@ -26,10 +27,11 @@ def make_collage(input_folder, output, width, height):
     if not images:
         click.echo(f"Error: No images found in {input_folder}")
         return
-    try:
-        display_collage(images, output, width, height)
-    except Exception as view_error:
-        click.echo(f"Error displaying collage: {view_error}")
+    # Initialize Pygame
+    pygame.init()
+    viewer=CollageViewer(images, output, width, height)
+    viewer.run()
+
 
 if __name__ == '__main__':
     main()

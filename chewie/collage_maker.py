@@ -57,7 +57,6 @@ def create_collage(images, width, init_height):
     for coef, imgs_line in coefs_lines:
         if imgs_line:
             out_height += int(init_height / coef) + margin_size
-            print(out_height)
     if not out_height:
         print('Height of collage could not be 0!')
         return False
